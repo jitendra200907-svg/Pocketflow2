@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#6c5ce7">
+<link rel="manifest" href="manifest.webmanifest">
+<title>PocketFlow — Money Tracker</title>
+<style>
+:root{--bg:#f7f5ff;--card:#fff;--text:#202033;--muted:#77758b;--primary:#6c5ce7;--primary2:#8e7dff;--green:#21b573;--red:#ef6a7a;--line:#ece9f7;--shadow:0 12px 35px rgba(72,55,140,.10)}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#f8f6ff,#eefaf7);font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:var(--text)}
+.app{max-width:780px;margin:auto;min-height:100vh;padding-bottom:35px}.hero{padding:26px 18px 80px;background:linear-gradient(135deg,#6c5ce7,#8e7dff 55%,#55c7a0);color:white;border-radius:0 0 35px 35px}
+.hero-top{display:flex;justify-content:space-between;align-items:center}.brand{font-size:25px;font-weight:850}.month-pill{background:#ffffff25;border:1px solid #ffffff35;padding:9px 12px;border-radius:20px;font-size:13px}
+.greeting{margin-top:25px}.greeting small{opacity:.8}.greeting h2{font-size:30px;margin:4px 0}.greeting p{margin:0;opacity:.82}
+.wrap{padding:0 16px;margin-top:-55px}.balance{background:rgba(255,255,255,.96);border-radius:25px;padding:20px;box-shadow:var(--shadow)}
+.balance-label{color:var(--muted);font-size:13px}.balance-row{display:flex;align-items:end;justify-content:space-between;gap:10px}.balance-value{font-size:32px;font-weight:850;margin-top:4px}.income-chip{color:#087a4d;background:#e7faf2;padding:8px 11px;border-radius:13px;font-size:12px;font-weight:750}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}.stat{background:var(--card);border-radius:20px;padding:15px;box-shadow:var(--shadow)}.stat-head{display:flex;justify-content:space-between}.dot{width:9px;height:9px;border-radius:50%;margin-top:5px}.income{background:#21b573}.expense{background:#ef6a7a}.stat b{display:block;font-size:20px;margin-top:6px}.muted{color:var(--muted);font-size:12px}
+.section-title{font-size:18px;font-weight:800;margin:24px 3px 11px}.budget{background:var(--card);padding:17px;border-radius:20px;box-shadow:var(--shadow)}.budget-top{display:flex;justify-content:space-between}.progress{height:10px;background:#eeeaf9;border-radius:99px;margin-top:12px;overflow:hidden}.bar{height:100%;width:0;background:linear-gradient(90deg,#6c5ce7,#55c7a0);border-radius:99px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:13px}.action{padding:14px;border:0;border-radius:17px;font-weight:800;cursor:pointer}.add-money{background:#e8faf3;color:#087a4d}.add-expense{background:#eeeaff;color:#5142c7}
+.list{display:grid;gap:9px}.item{display:flex;align-items:center;gap:12px;background:var(--card);padding:13px;border-radius:18px;box-shadow:0 5px 20px rgba(72,55,140,.07)}.icon{width:43px;height:43px;border-radius:14px;background:#f1efff;display:grid;place-items:center;font-size:20px}.info{flex:1}.name{font-weight:750}.meta{font-size:11px;color:var(--muted);margin-top:3px}.amt{font-weight:850}.del{border:0;background:#fff0f2;color:#c84d60;border-radius:10px;padding:7px;cursor:pointer}
+.empty{background:white;padding:25px;text-align:center;border-radius:18px;color:var(--muted)}
+.modal{position:fixed;inset:0;background:#1d1838aa;display:none;align-items:end;z-index:5}.modal.show{display:flex}.sheet{background:#fff;width:100%;max-width:780px;margin:auto;border-radius:28px 28px 0 0;padding:21px}.sheet h3{margin:0 0 16px;font-size:21px}.form{display:grid;gap:11px}.form input,.form select{width:100%;padding:13px;border:1px solid var(--line);border-radius:13px;font:inherit;outline:none}.form input:focus,.form select:focus{border-color:var(--primary)}.save{background:var(--primary);color:#fff;border:0;padding:14px;border-radius:14px;font-weight:800}.cancel{background:#f1eff6;color:#555;border:0;padding:14px;border-radius:14px;font-weight:750}.buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:430px){.balance-value{font-size:27px}.hero{padding-bottom:75px}.brand{font-size:22px}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<style>
+.share-card{margin-top:10px;background:linear-gradient(135deg,#fff7e8,#fff);border:1px solid #f5dfb8;padding:15px;border-radius:18px}
+.share-card b{display:block;margin-bottom:4px}.share-card span{font-size:12px;color:#77758b}
+</style></head>
+<body>
+<div class="app">
+<section class="hero">
+  <div class="hero-top"><div class="brand">✦ PocketFlow</div><div class="month-pill" id="monthName"></div></div>
+  <div class="greeting"><small>YOUR MONEY, SIMPLIFIED</small><h2>Monthly overview</h2><p>See where your money goes at a glance.</p></div>
+</section>
+
+<main class="wrap">
+<div class="balance">
+ <div class="balance-label">Available this month</div>
+ <div class="balance-row"><div class="balance-value" id="available">₹0</div><div class="income-chip" id="incomeChip">Income ₹0</div></div>
+</div>
+<div class="stats">
+ <div class="stat"><div class="stat-head"><span class="muted">Money received</span><span class="dot income"></span></div><b id="income">₹0</b><span class="muted">This month</span></div>
+ <div class="stat"><div class="stat-head"><span class="muted">Money spent</span><span class="dot expense"></span></div><b id="spent">₹0</b><span class="muted" id="expenseCount">0 expenses</span></div>
+</div>
+
+<div class="section-title">Monthly budget</div>
+<div class="budget">
+ <div class="budget-top"><span class="muted">Spending</span><b id="budgetLabel">No budget set</b></div>
+ <div class="progress"><div class="bar" id="bar"></div></div>
+ <div style="display:flex;justify-content:space-between;margin-top:8px"><span class="muted" id="budgetPct">Set a budget to track it</span><span class="muted" id="budgetLeft"></span></div>
+</div>
+
+<div class="actions">
+ <button class="action add-money" onclick="openIncome()">＋ Add money received</button>
+ <button class="action add-expense" onclick="openExpense()">＋ Add expense</button>
+</div>
+<button class="action" style="width:100%;margin-top:10px;background:#fff1df;color:#9a5b00" onclick="pickReceipt()">📷 Scan receipt / payment screenshot</button><div class="share-card"><b>⚡ Share directly from payment apps</b><span>Install PocketFlow as an app, then use <b>Share → PocketFlow</b> on a payment receipt/screenshot. The app will open and scan it automatically.</span></div>
+<input id="receiptFile" type="file" accept="image/*" capture="environment" style="display:none" onchange="scanReceipt(this)">
+
+<div class="section-title">Recent activity</div>
+<div class="list" id="list"></div>
+</main>
+</div>
+
+<div class="modal" id="scanModal"><div class="sheet"><h3>📷 Reading your receipt</h3>
+<div id="scanStatus" class="muted">Preparing image…</div>
+<img id="receiptPreview" style="display:none;width:100%;max-height:220px;object-fit:contain;border-radius:15px;margin:12px 0;background:#f5f3fa">
+<div id="scanResult" style="display:none;background:#f5f3fa;border-radius:15px;padding:14px;margin:10px 0"></div>
+<div class="buttons"><button class="cancel" onclick="closeModals()">Cancel</button><button class="save" id="useScanBtn" style="display:none" onclick="useScan()">Use detected details</button></div>
+</div></div>
+<div class="modal" id="incomeModal"><div class="sheet"><h3>💚 Money received</h3><div class="form">
+<input id="incomeAmount" type="number" min="0" placeholder="Amount (₹)">
+<input id="incomeSource" placeholder="Source (e.g. Salary, pocket money)">
+<div class="buttons"><button class="cancel" onclick="closeModals()">Cancel</button><button class="save" onclick="saveIncome()">Add money</button></div>
+</div></div></div>
+
+<div class="modal" id="expenseModal"><div class="sheet"><h3>💜 Add expense</h3><div class="form">
+<input id="expenseAmount" type="number" min="0" placeholder="Amount (₹)">
+<select id="category"><option>🍔 Food</option><option>🚕 Transport</option><option>🛍️ Shopping</option><option>🏠 Bills</option><option>🎓 Education</option><option>🎬 Entertainment</option><option>💊 Health</option><option>📱 Recharge</option><option>📦 Other</option></select>
+<input id="note" placeholder="What did you spend on?">
+<div class="buttons"><button class="cancel" onclick="closeModals()">Cancel</button><button class="save" onclick="saveExpense()">Save expense</button></div>
+</div></div></div>
+
+<script>
+
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js", {scope:"./"}).catch(()=>{});
+  navigator.serviceWorker.addEventListener("message",e=>{
+    if(e.data && e.data.type==="SHARED_RECEIPT"){
+      const blob=e.data.blob;
+      if(blob){ const f=new File([blob],"shared-receipt.jpg",{type:blob.type||"image/jpeg"}); scanReceipt({files:[f]}); }
+    }
+  });
+}
+
+const KEY="pocketflow_v2";
+let db=JSON.parse(localStorage.getItem(KEY)||'{"income":[],"expenses":[],"budgets":{}}');
+const now=new Date();
+const currentMonth=()=>now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
+const month=currentMonth();
+const money=n=>"₹"+Number(n).toLocaleString("en-IN",{maximumFractionDigits:2});
+const fmt=d=>new Date(d).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"});
+function persist(){localStorage.setItem(KEY,JSON.stringify(db))}
+function render(){
+ const inc=db.income.filter(x=>x.month===month), exp=db.expenses.filter(x=>x.month===month);
+ const income=inc.reduce((a,x)=>a+Number(x.amount),0), spent=exp.reduce((a,x)=>a+Number(x.amount),0);
+ const budget=Number(db.budgets[month]||0), available=income-spent, pct=budget?Math.min(100,spent/budget*100):0;
+ document.getElementById("monthName").textContent=new Date(month+"-01").toLocaleDateString("en-IN",{month:"short",year:"numeric"});
+ document.getElementById("available").textContent=money(available);
+ document.getElementById("income").textContent=money(income);
+ document.getElementById("spent").textContent=money(spent);
+ document.getElementById("incomeChip").textContent="Income "+money(income);
+ document.getElementById("expenseCount").textContent=exp.length+" expense"+(exp.length===1?"":"s");
+ document.getElementById("budgetLabel").textContent=budget?money(budget):"No budget set";
+ document.getElementById("bar").style.width=pct+"%";
+ document.getElementById("budgetPct").textContent=budget?Math.round(pct)+"% used":"Set a budget to track it";
+ document.getElementById("budgetLeft").textContent=budget?money(Math.max(0,budget-spent))+" left":"";
+ const activity=[...inc.map(x=>({...x,type:"in"})),...exp.map(x=>({...x,type:"out"}))].sort((a,b)=>b.created-a.created);
+ document.getElementById("list").innerHTML=activity.length?activity.slice(0,30).map(x=>{
+   const isIn=x.type==="in", icon=isIn?"💚":x.category.split(" ")[0], title=isIn?(x.source||"Money received"):x.category.substring(x.category.indexOf(" ")+1);
+   return `<div class="item"><div class="icon">${icon}</div><div class="info"><div class="name">${esc(title)}</div><div class="meta">${fmt(x.created)} · Automatically recorded</div></div><div class="amt" style="color:${isIn?'#087a4d':'#c84d60'}">${isIn?"+":"-"}${money(x.amount)}</div><button class="del" onclick="removeItem('${x.id}','${x.type}')">×</button></div>`
+ }).join(""):'<div class="empty">No activity this month.<br>Add money received or an expense to get started.</div>';
+}
+function esc(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
+function openIncome(){document.getElementById("incomeModal").classList.add("show");document.getElementById("incomeAmount").focus()}
+function openExpense(){document.getElementById("expenseModal").classList.add("show");document.getElementById("expenseAmount").focus()}
+function closeModals(){document.querySelectorAll(".modal").forEach(x=>x.classList.remove("show"));document.querySelectorAll(".form input").forEach(x=>x.value="")}
+function saveIncome(){let a=Number(document.getElementById("incomeAmount").value),s=document.getElementById("incomeSource").value.trim();if(!a||a<0)return alert("Enter a valid amount.");db.income.push({id:Date.now().toString(),amount:a,source:s,month,created:Date.now()});persist();closeModals();render()}
+function saveExpense(){let a=Number(document.getElementById("expenseAmount").value),c=document.getElementById("category").value,n=document.getElementById("note").value.trim();if(!a||a<0)return alert("Enter a valid amount.");db.expenses.push({id:Date.now().toString(),amount:a,category:c,note:n,month,created:Date.now()});persist();closeModals();render()}
+function removeItem(id,type){if(!confirm("Delete this entry?"))return;db[type==="in"?"income":"expenses"]=db[type==="in"?"income":"expenses"].filter(x=>x.id!==id);persist();render()}
+
+
+let scanData={amount:0,category:"📦 Other",text:""};
+function pickReceipt(){document.getElementById("receiptFile").click()}
+async function scanReceipt(input){
+  const file=input && input.files && input.files[0]; if(!file)return;
+  const modal=document.getElementById("scanModal"), img=document.getElementById("receiptPreview");
+  modal.classList.add("show"); document.getElementById("scanStatus").textContent="Reading screenshot…";
+  img.src=URL.createObjectURL(file); img.style.display="block";
+  document.getElementById("scanResult").style.display="none"; document.getElementById("useScanBtn").style.display="none";
+  try{
+    const result=await Tesseract.recognize(file,"eng",{logger:m=>{
+      if(m.status==="recognizing text") document.getElementById("scanStatus").textContent="Reading text… "+Math.round((m.progress||0)*100)+"%";
+    }});
+    const text=result.data.text||""; scanData.text=text;
+    scanData.amount=detectAmount(text); scanData.category=detectCategory(text);
+    document.getElementById("scanStatus").textContent="Done — please check the detected details.";
+    document.getElementById("scanResult").innerHTML=
+      "<b>Detected amount:</b> "+(scanData.amount?money(scanData.amount):"Not found")+"<br>"+
+      "<b>Detected category:</b> "+esc(scanData.category.substring(scanData.category.indexOf(" ")+1))+
+      "<br><span class='muted'>You can review/edit after importing.</span>";
+    document.getElementById("scanResult").style.display="block"; document.getElementById("useScanBtn").style.display="block";
+  }catch(e){document.getElementById("scanStatus").textContent="Could not read this image. Try a clearer screenshot."}
+}
+function detectAmount(text){
+  const cleaned=text.replace(/,/g,"").replace(/₹/g," INR ");
+  const lines=cleaned.split(/\n+/).map(x=>x.trim()).filter(Boolean);
+  const patterns=[
+    /(?:total|amount|paid|pay|grand total|net amount|transaction amount|debit|spent)[^\d]{0,25}(\d+(?:\.\d{1,2})?)/i,
+    /(?:INR|Rs\.?)\s*(\d+(?:\.\d{1,2})?)/i
+  ];
+  for(const line of lines){for(const re of patterns){const m=line.match(re);if(m){const n=Number(m[1]);if(n>0&&n<10000000)return n}}}
+  const nums=(text.replace(/,/g,"").match(/\b\d+(?:\.\d{1,2})?\b/g)||[]).map(Number).filter(n=>n>1&&n<10000000);
+  return nums.length?Math.max(...nums):0;
+}
+function detectCategory(text){
+  const t=text.toLowerCase();
+  if(/restaurant|food|cafe|pizza|swiggy|zomato|bakery|hotel|dining|kitchen/.test(t))return "🍔 Food";
+  if(/uber|ola|rapido|metro|bus|fuel|petrol|diesel|parking|transport/.test(t))return "🚕 Transport";
+  if(/amazon|flipkart|myntra|shopping|mall|store|retail/.test(t))return "🛍️ Shopping";
+  if(/electricity|water bill|gas bill|recharge|jio|airtel|vi |broadband|internet/.test(t))return "🏠 Bills";
+  if(/school|college|university|course|education|books/.test(t))return "🎓 Education";
+  if(/movie|cinema|netflix|spotify|game|entertainment/.test(t))return "🎬 Entertainment";
+  if(/pharmacy|medical|hospital|clinic|medicine|health/.test(t))return "💊 Health";
+  return "📦 Other";
+}
+function useScan(){
+  closeModals(); openExpense();
+  document.getElementById("expenseAmount").value=scanData.amount||"";
+  document.getElementById("category").value=scanData.category;
+  document.getElementById("note").value="Imported from receipt/payment screenshot";
+}
+
+// Long press / button on budget area to set monthly budget.
+document.querySelector(".budget").addEventListener("click",()=>{
+ const old=db.budgets[month]||""; const v=prompt("Set monthly spending budget (₹):",old);
+ if(v===null)return; const n=Number(v); if(!Number.isFinite(n)||n<0)return alert("Enter a valid budget.");
+ db.budgets[month]=n;persist();render();
+});
+
+async function loadSharedReceipt(){
+  if(!location.search.includes("shared=1")) return;
+  try{
+    const req=indexedDB.open("PocketFlowShare",1);
+    req.onupgradeneeded=()=>req.result.createObjectStore("files",{keyPath:"id",autoIncrement:true});
+    req.onsuccess=()=>{
+      const db=req.result, tx=db.transaction("files","readonly"), st=tx.objectStore("files");
+      const get=st.getAll();
+      get.onsuccess=async()=>{
+        const items=get.result||[];
+        if(items.length){
+          const item=items[items.length-1];
+          const file=new File([item.blob],item.name||"shared-receipt.jpg",{type:item.type||"image/jpeg"});
+          scanReceipt({files:[file]});
+          const del=db.transaction("files","readwrite").objectStore("files").delete(item.id);
+        }
+      };
+    };
+  }catch(e){}
+}
+loadSharedReceipt();
+</script>
+</body>
+</html>
